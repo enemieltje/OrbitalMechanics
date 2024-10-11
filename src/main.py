@@ -1,5 +1,6 @@
 import logging
 import sys
+import numpy as np
 
 from orbit import Orbit
 from planet import Planet
@@ -23,7 +24,8 @@ sat_2 = Satellite(
 sat_2.time = 3000
 logger.info(sat_2)
 
-logger.info(sat_2.position - sat_1.position)
+logger.info(
+    f"Distance: {np.linalg.norm(sat_2.position - sat_1.position):.0f} m\n")
 
 
 sat_3 = Satellite(Orbit(planet=mars, semi_major_axis=2.5E7, eccentricity=0.2))

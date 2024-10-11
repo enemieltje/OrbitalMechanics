@@ -31,8 +31,7 @@ class Orbit:
                 f"Eccentricity: {self.eccentricity:.2f},\n"
                 f"Inclination: {self.inclination:.4f} radians,\n"
                 f"Right Ascension: {self.right_ascension:.4f} radians,\n"
-                f"Argument of Periapsis: {
-                    self.argument_of_periapsis:.4f} radians,\n"
+                f"Argument of Periapsis: {self.argument_of_periapsis:.4f} radians,\n"
                 f"Semi Latus Rectum: {self.semi_latus_rectum:.0f} m,\n"
                 )
 
