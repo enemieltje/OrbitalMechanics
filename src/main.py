@@ -10,26 +10,30 @@ logger = logging.getLogger(__name__)
 logging.basicConfig(handlers=[logging.StreamHandler(sys.stdout)],
                     encoding='utf-8', level=logging.DEBUG)
 
-earth = Planet()
-mars = Planet()
+earth = Planet(5.972E24, 6371E3)
+mars = Planet(6.4171E23, 3389E3)
 
 # Assignment 4
 sat_1 = Satellite(Orbit(planet=earth, semi_major_axis=2.5E7, eccentricity=0.2))
-sat_1.step_time(2000)
+sat_1.time = 2000
+logger.info(sat_1)
 
 sat_2 = Satellite(
     Orbit(planet=earth, semi_major_axis=earth.radius + 700E3, eccentricity=0.05))
-sat_2.step_time(3000)
+sat_2.time = 3000
+logger.info(sat_2)
 
 logger.info(sat_2.position - sat_1.position)
 
 
 sat_3 = Satellite(Orbit(planet=mars, semi_major_axis=2.5E7, eccentricity=0.2))
-sat_3.step_time(2000)
+sat_3.time = 2000
+logger.info(sat_3)
 
 sat_4 = Satellite(
     Orbit(planet=mars, semi_major_axis=earth.radius + 700E3, eccentricity=0.05))
-sat_4.step_time(3000)
+sat_4.time = 3000
+logger.info(sat_4)
 
 logger.info(sat_4.position - sat_3.position)
 
@@ -42,7 +46,7 @@ moon.apsides_precession()
 
 # Assignment 6
 
-IH_1 = Satellite(Orbit(altitude=525E3, velocity=7728))
+IH_1 = Satellite(Orbit(planet=earth, altitude=525E3, velocity=7728))
 # TODO: Overlay these
 IH_1.orbit.kepler_graph()
 IH_1.orbit.step_graph()

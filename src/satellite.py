@@ -1,9 +1,103 @@
 import logging
+import numpy as np
+import numpy.typing as npt
 
 from orbit import Orbit
 
 logger = logging.getLogger(__name__)
+Vector = npt.NDArray[np.float64]
 
 
 class Satellite:
     orbit: Orbit = None
+    _time: int = 0
+    _eccentric_anomaly: float = None
+
+    @property
+    def time(self):
+        return self._time
+
+    @time.setter
+    def time(self, time):
+        self._time = time
+        self.update_eccentric_anomaly()
+
+    @property
+    def mean_anomaly(self):
+        return 2 * np.pi * (self._time / self.orbit.period)
+
+    @property
+    def eccentric_anomaly(self):
+        if not self._eccentric_anomaly:
+            self.update_eccentric_anomaly()
+        return self._eccentric_anomaly
+
+    @property
+    def true_anomaly(self):
+        return 2*np.atan(
+            np.tan(self.eccentric_anomaly / 2) *
+            np.sqrt(
+                (1 + self.orbit.eccentricity) /
+                (1 - self.orbit.eccentricity)
+            )
+        )
+
+    @property
+    def position(self):
+
+        # Extract Keplerian elements
+        a = self.orbit.semi_major_axis
+        e = self.orbit.eccentricity
+        i = self.orbit.inclination
+        Omega = self.orbit.right_ascension
+        omega = self.orbit.argument_of_periapsis
+        theta = self.true_anomaly
+
+        # Step 1: Calculate distance from the focus using semi-major axis and eccentricity
+        r = (a * (1 - e ** 2)) / \
+            (1 + (e * np.cos(theta)))
+
+        # Step 2: Position in the orbital plane
+        x0 = r * np.cos(theta)
+        y0 = r * np.sin(theta)
+        z0 = 0  # Since it's in the orbital plane
+
+        # Step 3: Transformation to the inertial frame
+
+        # Rotation by argument of periapsis (around z-axis)
+        x1 = x0 * np.cos(omega) - y0 * np.sin(omega)
+        y1 = x0 * np.sin(omega) + y0 * np.cos(omega)
+        z1 = z0  # No change in z in this step
+
+        # Rotation by inclination (around x-axis)
+        x2 = x1
+        y2 = y1 * np.cos(i) - z1 * np.sin(i)
+        z2 = y1 * np.sin(i) + z1 * np.cos(i)
+
+        # Rotation by RAAN (around z-axis again)
+        x = x2 * np.cos(Omega) - y2 * np.sin(Omega)
+        y = x2 * np.sin(Omega) + y2 * np.cos(Omega)
+        z = z2  # No change in z in this step
+
+        return np.array([x, y, z])
+
+    def __str__(self) -> str:
+        return (f"Satellite Orbit:\n{self.orbit}\n"
+                f"Elapsed Time: {self.time} s,\n"
+                f"Mean Anomaly: {self.mean_anomaly:.4f} radians,\n"
+                f"Eccentric Anomaly: {self.eccentric_anomaly:.4f} radians,\n"
+                f"True Anomaly: {self.true_anomaly:.4f} radians\n"
+                f"Position: {self.position},\n"
+                )
+
+    def __init__(self, orbit: Orbit) -> None:
+        self.orbit = orbit
+
+    def _get_eccentric_anomaly(self, depth: int):
+        if depth == 0:
+            return 0
+        eccentric_anomaly = self._get_eccentric_anomaly(depth - 1)
+        return self.mean_anomaly - (self.orbit.eccentricity * np.sin(eccentric_anomaly))
+
+    def update_eccentric_anomaly(self):
+        self._eccentric_anomaly = self._get_eccentric_anomaly(10)
