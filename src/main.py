@@ -9,10 +9,10 @@ from satellite import Satellite
 # Configure logs to log both in the console and to a file
 logger = logging.getLogger(__name__)
 logging.basicConfig(handlers=[logging.StreamHandler(sys.stdout)],
-                    encoding='utf-8', level=logging.DEBUG)
+                    encoding='utf-8', level=logging.INFO)
 
-earth = Planet(5.972E24, 6371E3)
-mars = Planet(6.4171E23, 3389E3)
+earth = Planet(5.972E24, 6378E3, 365.256363004 * 24 * 60 * 60, 1082.62668E-6)
+mars = Planet(6.4171E23, 3389E3, 779.94 * 24 * 60 * 60, 1960.45E-6)
 
 # Assignment 4
 sat_1 = Satellite(Orbit(planet=earth, semi_major_axis=2.5E7, eccentricity=0.2))
