@@ -51,7 +51,6 @@ class Planet:
 
         orbit_height = (self.radius + altitude)
 
-        logger.info(f"rad/sec: {((2 * np.pi) / self.period)}")
         # Calculate cos(i)
         cos_i = \
             (-2/3) * \
@@ -76,7 +75,7 @@ class Planet:
     def sun_synchronous_graph(self):
         # Generate altitude values (for example, from 200 km to 2000 km)
         # 500 points between 200 km and 1000 km
-        altitudes = np.linspace(200, 1000, 500)
+        altitudes = np.linspace(200E3, 1000E3, 500)
 
         # Calculate inclination for each altitude using the function
         inclinations = [self.sun_synchronous_inclination(
@@ -87,7 +86,7 @@ class Planet:
         plt.plot(altitudes, np.degrees(inclinations),
                  label='Sun-Synchronous Inclination')
         plt.title('Sun-Synchronous Inclination vs Altitude')
-        plt.xlabel('Altitude (km)')
+        plt.xlabel('Altitude (m)')
         plt.ylabel('Inclination (degrees)')
         plt.grid(True)
         plt.legend()
