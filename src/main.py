@@ -1,5 +1,6 @@
 import logging
 import sys
+from matplotlib import pyplot as plt
 import numpy as np
 from colorlog import ColoredFormatter
 
@@ -93,9 +94,10 @@ IH_1 = Satellite(name="InhollandSat 1",
                  altitude=525E3,
                  velocity=7728)
 # TODO: Overlay these
-IH_1.kepler_graph()
-IH_1.step_graph()
+IH_1.kepler_graph(10000)
+IH_1.step_graph(10000)
 
+plt.show()
 
 IH_2 = Satellite(name="InhollandSat 2",
                  orbit=earth.surface_orbit())
