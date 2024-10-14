@@ -7,9 +7,14 @@ from orbit import Orbit
 logger = logging.getLogger(__name__)
 Vector = npt.NDArray[np.float64]
 
+RESET = '\033[0m'
+RED = '\033[31m'
+CYAN = '\033[36m'
 
-class Satellite:
-    orbit: Orbit = None
+
+class Satellite(Orbit):
+    # orbit: Orbit = None
+    name: str
     _time: int = 0
     _eccentric_anomaly: float = None
 
@@ -24,7 +29,7 @@ class Satellite:
 
     @property
     def mean_anomaly(self):
-        return 2 * np.pi * (self._time / self.orbit.period)
+        return 2 * np.pi * (self._time / self.period)
 
     @property
     def eccentric_anomaly(self):
@@ -37,20 +42,24 @@ class Satellite:
         return 2*np.atan(
             np.tan(self.eccentric_anomaly / 2) *
             np.sqrt(
-                (1 + self.orbit.eccentricity) /
-                (1 - self.orbit.eccentricity)
+                (1 + self.eccentricity) /
+                (1 - self.eccentricity)
             )
         )
+
+    @property
+    def theta(self):
+        return self.true_anomaly
 
     @property
     def position(self):
 
         # Extract Keplerian elements
-        a = self.orbit.semi_major_axis
-        e = self.orbit.eccentricity
-        i = self.orbit.inclination
-        Omega = self.orbit.right_ascension
-        omega = self.orbit.argument_of_periapsis
+        a = self.semi_major_axis
+        e = self.eccentricity
+        i = self.inclination
+        Omega = self.right_ascension
+        omega = self.argument_of_periapsis
         theta = self.true_anomaly
 
         # Step 1: Calculate distance from the focus using semi-major axis and eccentricity
@@ -82,22 +91,41 @@ class Satellite:
         return np.array([x, y, z])
 
     def __str__(self) -> str:
-        return (f"Satellite Orbit:\n{self.orbit}\n"
-                f"Elapsed Time: {self.time} s,\n"
-                f"Mean Anomaly: {self.mean_anomaly:.4f} radians,\n"
-                f"Eccentric Anomaly: {self.eccentric_anomaly:.4f} radians,\n"
-                f"True Anomaly: {self.true_anomaly:.4f} radians\n"
+        return (f"{CYAN}{self.name}{RESET}\n"
+                f"Satellite Orbit:\n{super().__str__()}\n"
+                f"Elapsed Time: {RED}{self.time}{RESET} s,\n"
+                f"Mean Anomaly: {RED}{self.mean_anomaly:.4f}{RESET} radians,\n"
+                f"Eccentric Anomaly: {RED}{
+                    self.eccentric_anomaly:.4f}{RESET} radians,\n"
+                f"True Anomaly: {RED}{self.true_anomaly:.4f}{RESET} radians\n"
                 f"Position: {self.position},\n"
                 )
 
-    def __init__(self, orbit: Orbit) -> None:
-        self.orbit = orbit
+    def __init__(self, *args, **kwargs) -> None:
+        self.name = kwargs.get("name", "Unnamed Sattelite")
+        super().__init__(self, **kwargs)
+        # self.orbit = orbit
 
     def _get_eccentric_anomaly(self, depth: int):
         if depth == 0:
             return 0
         eccentric_anomaly = self._get_eccentric_anomaly(depth - 1)
-        return self.mean_anomaly - (self.orbit.eccentricity * np.sin(eccentric_anomaly))
+        return self.mean_anomaly - (self.eccentricity * np.sin(eccentric_anomaly))
 
     def update_eccentric_anomaly(self):
         self._eccentric_anomaly = self._get_eccentric_anomaly(10)
+
+    def apsides_precession(self):
+        # Precession of apsides formula:
+        # Δω = 3π * (J2 * R_E^2) / p^2 * (2 - (5/2) * sin^2(i))
+
+        # Calculate intermediate components
+        J2_term = self.planet.J2 * (self.planet.radius ** 2)
+        p_term = self.semi_latus_rectum ** 2
+        sine_term = np.sin(self.i) ** 2
+        factor = (2 - (5 / 2) * sine_term)
+
+        # Combine the pieces
+        delta_omega = 3 * np.pi * (J2_term / p_term) * factor
+
+        return delta_omega

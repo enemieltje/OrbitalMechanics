@@ -8,6 +8,9 @@ logger = logging.getLogger(__name__)
 
 Vector = npt.NDArray[np.float64]
 
+RESET = '\033[0m'
+RED = '\033[31m'
+
 
 class Orbit:
 
@@ -26,13 +29,36 @@ class Orbit:
     apoapsis: float
     eccentricity_vector: Vector
 
+    @property
+    def a(self):
+        return self.semi_major_axis
+
+    @property
+    def e(self):
+        return self.eccentricity
+
+    @property
+    def i(self):
+        return self.inclination
+
+    @property
+    def Omega(self):
+        return self.right_ascension
+
+    @property
+    def omega(self):
+        return self.argument_of_periapsis
+
     def __str__(self) -> str:
-        return (f"Semi-Major Axis: {self.semi_major_axis:.0f} m,\n"
-                f"Eccentricity: {self.eccentricity:.2f},\n"
-                f"Inclination: {self.inclination:.4f} radians,\n"
-                f"Right Ascension: {self.right_ascension:.4f} radians,\n"
-                f"Argument of Periapsis: {self.argument_of_periapsis:.4f} radians,\n"
-                f"Semi Latus Rectum: {self.semi_latus_rectum:.0f} m,\n"
+        return (f"Semi-Major Axis: {RED}{self.semi_major_axis:.0f}{RESET} m,\n"
+                f"Eccentricity: {RED}{self.eccentricity:.2f}{RESET},\n"
+                f"Inclination: {RED}{self.inclination:.4f}{RESET} radians,\n"
+                f"Right Ascension: {RED}{
+                    self.right_ascension:.4f}{RESET} radians,\n"
+                f"Argument of Periapsis: {RED}{
+                    self.argument_of_periapsis:.4f}{RESET} radians,\n"
+                f"Semi Latus Rectum: {RED}{
+                    self.semi_latus_rectum:.0f}{RESET} m,\n"
                 )
 
     # create new orbit

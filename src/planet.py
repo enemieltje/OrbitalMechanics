@@ -13,11 +13,19 @@ class Planet:
     gravitational_parameter: float
     oblateness_coefficient: float
 
-    def __init__(self, mass: float, radius: float, period: float, oblateness_coefficient: float) -> None:
-        self.mass = mass
-        self.radius = radius
-        self.period = period
-        self.oblateness_coefficient = oblateness_coefficient
+    @property
+    def J2(self):
+        return self.oblateness_coefficient
+
+    @property
+    def mu(self):
+        return self.gravitational_parameter
+
+    def __init__(self, **kwargs) -> None:
+        self.mass = kwargs.get("mass", 0)
+        self.radius = kwargs.get("radius", 0)
+        self.period = kwargs.get("period", 0)
+        self.oblateness_coefficient = kwargs.get("J2", 0)
         self.gravitational_parameter = self.mass * 6.67E-11
 
     def old_sun_synchronous_inclination(self, altitude: float) -> float:
@@ -90,5 +98,5 @@ class Planet:
         plt.ylabel('Inclination (degrees)')
         plt.grid(True)
         plt.legend()
-        plt.show()
+        # plt.show()
         pass
