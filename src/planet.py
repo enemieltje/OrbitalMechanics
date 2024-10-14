@@ -8,6 +8,7 @@ logger = logging.getLogger(__name__)
 
 class Planet:
     mass: float
+    color: str
     radius: float
     period: float
     gravitational_parameter: float
@@ -23,6 +24,7 @@ class Planet:
 
     def __init__(self, **kwargs) -> None:
         self.mass = kwargs.get("mass", 0)
+        self.color = kwargs.get("color", "gray")
         self.radius = kwargs.get("radius", 0)
         self.period = kwargs.get("period", 0)
         self.oblateness_coefficient = kwargs.get("J2", 0)

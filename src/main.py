@@ -29,12 +29,15 @@ logger = logging.getLogger(__name__)
 earth = Planet(mass=5.972E24,
                radius=6378E3,
                period=365.256363004 * 24 * 60 * 60,
-               J2=1082.62668E-6)
+               J2=1082.62668E-6,
+               color="#294C60"
+               )
 
 mars = Planet(mass=6.4171E23,
               radius=3389E3,
               period=779.94 * 24 * 60 * 60,
-              J2=1960.45E-6)
+              J2=1960.45E-6,
+              color="#FFC49B")
 
 # Assignment 4
 sat_1 = Satellite(name="Sat 1",
@@ -93,9 +96,10 @@ IH_1 = Satellite(name="InhollandSat 1",
                  planet=earth,
                  altitude=525E3,
                  velocity=7728)
-# TODO: Overlay these
-IH_1.kepler_graph(10000)
-IH_1.step_graph(10000)
+
+# IH_1.kepler_graph(100000)
+# IH_1.step_graph(100000)
+IH_1.plot_combined(1000)
 
 plt.show()
 

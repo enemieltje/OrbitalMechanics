@@ -131,70 +131,60 @@ class Satellite(Orbit):
 
         return delta_omega
 
-    def step_graph(self, steps=10000):
-        # length of timestep to make one period
-        dt = self.period/steps
+    def _plot_orbit(self, x, y, plotlabel, title, ax=None, color='blue'):
+        """Generalized plot function for orbit visualization."""
+        if ax is None:
+            fig, ax = plt.subplots()
+        ax.set_aspect('equal')
+        ax.scatter(x, y, label=plotlabel, color=color)
+        ax.set_title(title)
+        ax.set_xlabel('X axis (m)')
+        ax.set_ylabel('Y axis (m)')
+        circle = plt.Circle((0, 0), radius=self.planet.radius,
+                            color=self.planet.color)
+        ax.add_patch(circle)
+        ax.legend(loc='upper left', fontsize='small')
+        return ax
 
-        x = np.zeros(steps+1)
-        y = np.zeros(steps+1)
-        # (m) initial condition of object position on x-axis (1.496e11 is averagedistance Earth-Sun)
+    def step_graph(self, steps=100000, ax=None):
+        dt = self.period / steps
+
+        x = np.zeros(steps + 1)
+        y = np.zeros(steps + 1)
         x[0] = self.periapsis
-        y[0] = 0.0  # (m) initial condition of object position on y-axis
-        vx = np.zeros(steps+1)
-        vy = np.zeros(steps+1)
-        # (m/s) initial condition of object velocity in x-axis direction
-        vx[0] = 0.0
-        # (m/s) initial condition of object velocity in y-axis direction (Earth velocity around Sun is 29780.0 m/s)
-        vy[0] = np.sqrt(self.planet.mu*((2/x[0])-(1/self.semi_major_axis)))
-        ax = np.zeros(steps+1)
-        ay = np.zeros(steps+1)
+        y[0] = 0.0
+        vx = np.zeros(steps + 1)
+        vy = np.zeros(steps + 1)
+        vy[0] = np.sqrt(self.planet.mu * ((2 / x[0]) -
+                        (1 / self.semi_major_axis)))
+        ax_vals = np.zeros(steps + 1)
+        ay_vals = np.zeros(steps + 1)
 
         def a(x, y):
-            # Distance from the central body to the object
-            r = np.sqrt(x**2+y**2)
-            # Acceleration of a body under a gravity force from a mass m1
-            return (-self.planet.gravitational_parameter)/r**2
+            r = np.sqrt(x**2 + y**2)
+            return -self.planet.gravitational_parameter / r**2
 
-        for i in range(0, steps):
+        for i in range(steps):
             if x[i] == 0:
-                # To prevent an impossible operations in the calculation of ax[i]
-                ax[i] = 0
+                ax_vals[i] = 0
             else:
-                # Calculation of the acceleration ax[i]. Note that the sign/direction of ax[i] is arranged with the factor: (x[i]/abs(x[i]))
-                ax[i] = a(x[i], y[i])/np.sqrt(1+(y[i]**2/x[i]**2)) * \
-                    (x[i]/abs(x[i]))
+                ax_vals[i] = a(x[i], y[i]) / np.sqrt(1 +
+                                                     (y[i]**2 / x[i]**2)) * (x[i] / abs(x[i]))
             if y[i] == 0:
-                # To prevent an impossible operation in the calculation of ay[i]
-                ay[i] = 0
+                ay_vals[i] = 0
             else:
-                # Calculation of the acceleration ay[i]. Note that the sign/direction of ay[i] is arranged with the factor: (y[i]/abs(y[i]))
-                ay[i] = a(x[i], y[i])/np.sqrt(1+(x[i]**2/y[i]**2)) * \
-                    (y[i]/abs(y[i]))
-            # calculation of the velocity as a result of the initial velocity and the acceleration
-            vx[i+1] = vx[i] + ax[i]*dt
-            # calculation of the velocity as a result of the initial velocity and the acceleration
-            vy[i+1] = vy[i] + ay[i]*dt
-            # calculation of the position as a result of the initial position and the velocity
-            x[i+1] = x[i] + vx[i]*dt
-            # calculation of the position as a result of the initial position and the velocity
-            y[i+1] = y[i] + vy[i]*dt
+                ay_vals[i] = a(x[i], y[i]) / np.sqrt(1 +
+                                                     (x[i]**2 / y[i]**2)) * (y[i] / abs(y[i]))
 
-        plotlabel = 'Object position'
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-        ax.set_aspect('equal')
-        fig.suptitle(f'Step Orbit propagation of {self.name}')
-        plt.scatter(x, y, label=plotlabel)
-        plt.legend(loc='upper left', fontsize='small')
-        plt.xlabel('X axis (m)')
-        plt.ylabel('Y axis (m)')
-        # Yellow is used for the color of the Sun
-        circle = plt.Circle((0, 0), radius=self.planet.radius, color='yellow')
-        ax.add_patch(circle)
-        # plt.show()
+            vx[i + 1] = vx[i] + ax_vals[i] * dt
+            vy[i + 1] = vy[i] + ay_vals[i] * dt
+            x[i + 1] = x[i] + vx[i] * dt
+            y[i + 1] = y[i] + vy[i] * dt
 
-    def kepler_graph(self, steps=100):
+        title = f'Step Orbit Propagation of {self.name}'
+        return self._plot_orbit(x, y, plotlabel='Step Object position', title=title, ax=ax, color='#FFEFD3')
 
+    def kepler_graph(self, steps=100, ax=None):
         x = np.zeros(steps)
         y = np.zeros(steps)
 
@@ -204,16 +194,19 @@ class Satellite(Orbit):
             x[i] = position[0]
             y[i] = position[1]
 
-        plotlabel = 'Object position'
+        title = f'Kepler Orbit Propagation of {self.name}'
+        return self._plot_orbit(x, y, plotlabel='Kepler Object position', title=title, ax=ax, color='#ADB6C4')
+
+    def plot_combined(self, steps_step_graph=100000, steps_kepler_graph=100):
+        """Plot both step and Kepler graphs on the same figure."""
+        # fig, axes = plt.subplots(1, 2, figsize=(
+        #     12, 6))  # Two side-by-side subplots
+
         fig = plt.figure()
         ax = fig.add_subplot(111)
         ax.set_aspect('equal')
-        fig.suptitle(f'Kepler Orbit propagation of {self.name}')
-        plt.scatter(x, y, label=plotlabel)
-        plt.legend(loc='upper left', fontsize='small')
-        plt.xlabel('X axis (m)')
-        plt.ylabel('Y axis (m)')
-        # Yellow is used for the color of the Sun
-        circle = plt.Circle((0, 0), radius=self.planet.radius, color='yellow')
-        ax.add_patch(circle)
-        # plt.show()
+        # Plot step graph on the first subplot
+        self.step_graph(steps=steps_step_graph, ax=ax)
+
+        # Plot kepler graph on the second subplot
+        self.kepler_graph(steps=steps_kepler_graph, ax=ax)
