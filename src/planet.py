@@ -10,7 +10,8 @@ class Planet:
     mass: float
     color: str
     radius: float
-    period: float
+    orbit_period: float
+    equatorial_velocity: float
     gravitational_parameter: float
     oblateness_coefficient: float
 
@@ -26,9 +27,11 @@ class Planet:
         self.mass = kwargs.get("mass", 0)
         self.color = kwargs.get("color", "gray")
         self.radius = kwargs.get("radius", 0)
-        self.period = kwargs.get("period", 0)
+        self.orbit_period = kwargs.get("orbit_period", 0)
+        self.equatorial_velocity = kwargs.get("equatorial_velocity", 0)
         self.oblateness_coefficient = kwargs.get("J2", 0)
         self.gravitational_parameter = self.mass * 6.67E-11
+        logger.info(self.mu)
 
     def old_sun_synchronous_inclination(self, altitude: float) -> float:
 
@@ -40,7 +43,7 @@ class Planet:
             self.gravitational_parameter / (orbit_radius ** 3))
 
         # Precession rate required for a sun-synchronous orbit (1 revolution per year)
-        precession_rate = (2 * np.pi) / self.period
+        precession_rate = (2 * np.pi) / self.orbit_period
 
         # Calculate cos(i) for sun-synchronous orbit
         cos_i = precession_rate / (
@@ -64,7 +67,7 @@ class Planet:
         # Calculate cos(i)
         cos_i = \
             (-2/3) * \
-            ((2 * np.pi) / self.period) * \
+            ((2 * np.pi) / self.orbit_period) * \
             (1 / self.oblateness_coefficient) * \
             ((orbit_height/self.radius)**2) * \
             np.sqrt(

@@ -16,7 +16,9 @@ CYAN = '\033[36m'
 class Satellite(Orbit):
     # orbit: Orbit = None
     name: str
+    delta_v: float = 0
     _time: int = 0
+    _velocity: float = 0
     _eccentric_anomaly: float = None
 
     @property
@@ -53,7 +55,11 @@ class Satellite(Orbit):
         return self.true_anomaly
 
     @property
-    def position(self):
+    def r(self):
+        return np.linalg.norm(self.position_vector)
+
+    @property
+    def position_vector(self):
 
         # Extract Keplerian elements
         a = self.semi_major_axis
@@ -91,6 +97,44 @@ class Satellite(Orbit):
 
         return np.array([x, y, z])
 
+    @property
+    def velocity(self):
+        if self._velocity:
+            return self._velocity
+        else:
+            two_on_r = 2 / self.r
+            one_on_a = 1 / self.a
+
+            factor = two_on_r - one_on_a
+            v_squared = self.planet.mu * factor
+
+            return np.sqrt(v_squared)
+
+    @velocity.setter
+    def velocity(self, velocity):
+        if not velocity:
+            return
+        self._velocity = velocity
+        logger.warning(self.r)
+
+        # Vis-visa equation
+        self.semi_major_axis = 1 /\
+            (
+                (2 / self.r) -
+                ((velocity ** 2) / self.planet.mu)
+            )
+        logger.warning(self.semi_major_axis)
+
+        # eccentricity vector
+        self.eccentricity = \
+            ((velocity ** 2) / self.planet.mu) - \
+            (1 / (self.r))
+        logger.warning(self.eccentricity)
+
+    @property
+    def velocity_vector(self):
+        pass
+
     def __str__(self) -> str:
         return (f"{CYAN}{self.name}{RESET}\n"
                 f"Satellite Orbit:\n{super().__str__()}\n"
@@ -99,7 +143,9 @@ class Satellite(Orbit):
                 f"Eccentric Anomaly: {RED}{
                     self.eccentric_anomaly:.4f}{RESET} radians,\n"
                 f"True Anomaly: {RED}{self.true_anomaly:.4f}{RESET} radians\n"
-                f"Position: {self.position},\n"
+                f"Distance to Planet: {RED}{self.r:.0f}{RESET} m,\n"
+                f"velocity: {RED}{self.velocity:.0f}{RESET} m/s,\n"
+                f"Position: {self.position_vector},\n"
                 )
 
     def __init__(self, *args, **kwargs) -> None:
@@ -146,7 +192,7 @@ class Satellite(Orbit):
         ax.legend(loc='upper left', fontsize='small')
         return ax
 
-    def step_graph(self, steps=100000, ax=None):
+    def step_graph(self, steps=100000, ax=None, color='#FFEFD3'):
         dt = self.period / steps
 
         x = np.zeros(steps + 1)
@@ -181,23 +227,24 @@ class Satellite(Orbit):
             x[i + 1] = x[i] + vx[i] * dt
             y[i + 1] = y[i] + vy[i] * dt
 
-        title = f'Step Orbit Propagation of {self.name}'
-        return self._plot_orbit(x, y, plotlabel='Step Object position', title=title, ax=ax, color='#FFEFD3')
+        title = f'Orbit Propagation of {self.name}'
+        return self._plot_orbit(x, y, plotlabel=f"Step Position {self.name}", title=title, ax=ax, color=color)
 
-    def kepler_graph(self, steps=100, ax=None):
+    def kepler_graph(self, steps=100, ax=None, color='#ADB6C4'):
         x = np.zeros(steps)
         y = np.zeros(steps)
 
         for i, t in enumerate(np.linspace(0, self.period, steps)):
             self.time = t
-            position = self.position
+            position = self.position_vector
             x[i] = position[0]
             y[i] = position[1]
 
-        title = f'Kepler Orbit Propagation of {self.name}'
-        return self._plot_orbit(x, y, plotlabel='Kepler Object position', title=title, ax=ax, color='#ADB6C4')
+        title = f'Orbit Propagation of {self.name}'
+        return self._plot_orbit(x, y, plotlabel=f"Kepler Position {self.name}", title=title, ax=ax, color=color)
 
     def plot_combined(self, steps_step_graph=100000, steps_kepler_graph=100):
+        logger.info(self)
         """Plot both step and Kepler graphs on the same figure."""
         # fig, axes = plt.subplots(1, 2, figsize=(
         #     12, 6))  # Two side-by-side subplots
@@ -210,3 +257,59 @@ class Satellite(Orbit):
 
         # Plot kepler graph on the second subplot
         self.kepler_graph(steps=steps_kepler_graph, ax=ax)
+
+    def launch(self, altitude):
+        logger.info(self)
+        new_satellite = Satellite(name=self.name,
+                                  planet=self.planet,
+                                  altitude=altitude,
+                                  )
+        delta_v = abs(new_satellite.velocity - self.velocity)
+        new_satellite.add_delta_v(delta_v)
+        logger.info(f"{CYAN}{self.name}{RESET}\n"
+                    f"Launching to {RED}{(altitude/1000):.0f}{RESET} km\n"
+                    f"Velocity before launch: {RED}{
+                        self.velocity:.0f}{RESET} m/s\n"
+                    f"Velocity after launch: {RED}{
+                        new_satellite.velocity:.0f}{RESET} m/s\n"
+                    f"Expended Delta v: {RED}{delta_v:.0f}{RESET} m/s\n"
+                    )
+
+        return new_satellite
+
+    def hohmann(self, altitude):
+        # set position to periapsis
+        self.time = 0
+        self.change_apsis(altitude)
+
+        # set position to apoapsis
+        self.time = self.period/2
+        self.change_apsis(altitude)
+
+    def change_apsis(self, altitude):
+        logger.info(self)
+        # vis viva
+        # a = average(where we are, where we want to be)
+        v0 = self.velocity
+        two_on_r = 2 / self.r
+        one_on_a = 1 /\
+            ((self.r +
+              self.planet.radius + altitude) / 2)
+        self.velocity = np.sqrt(self.planet.mu * (two_on_r - one_on_a))
+        delta_v = abs(self.velocity - v0)
+        self.add_delta_v(delta_v)
+
+        logger.info(f"{CYAN}{self.name}{RESET}\n"
+                    f"changing apsis to {RED}{
+                        (altitude/1000):.0f}{RESET} km\n"
+                    f"Velocity before launch: {RED}{
+                        v0:.0f}{RESET} m/s\n"
+                    f"Velocity after launch: {RED}{
+                        self.velocity:.0f}{RESET} m/s\n"
+                    f"Expended Delta v: {RED}{delta_v:.0f}{RESET} m/s\n"
+                    )
+
+        pass
+
+    def add_delta_v(self, delta_v):
+        self.delta_v += delta_v

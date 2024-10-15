@@ -27,24 +27,33 @@ logging.basicConfig(handlers=[handler],
 logger = logging.getLogger(__name__)
 
 earth = Planet(mass=5.972E24,
-               radius=6378E3,
-               period=365.256363004 * 24 * 60 * 60,
+               radius=6371E3,
+               orbit_period=365.256363004 * 24 * 60 * 60,
+               equatorial_velocity=465,
                J2=1082.62668E-6,
                color="#294C60"
                )
 
 mars = Planet(mass=6.4171E23,
               radius=3389E3,
-              period=779.94 * 24 * 60 * 60,
+              orbit_period=779.94 * 24 * 60 * 60,
+              equatorial_velocity=241,
               J2=1960.45E-6,
               color="#FFC49B")
 
 # Assignment 4
+fig = plt.figure()
+earth_ax = fig.add_subplot(121)
+earth_ax.set_aspect('equal')
+mars_ax = fig.add_subplot(122)
+mars_ax.set_aspect('equal')
+
 sat_1 = Satellite(name="Sat 1",
                   planet=earth,
                   semi_major_axis=2.5E7,
                   eccentricity=0.2)
 sat_1.time = 2000
+sat_1.kepler_graph(ax=earth_ax)
 logger.info(sat_1)
 
 sat_2 = Satellite(name="Sat 2",
@@ -52,10 +61,11 @@ sat_2 = Satellite(name="Sat 2",
                   semi_major_axis=earth.radius + 700E3,
                   eccentricity=0.05)
 sat_2.time = 3000
+sat_2.kepler_graph(ax=earth_ax, color='#FFEFD3')
 logger.info(sat_2)
 
 logger.info(
-    f"{RESET}Distance: {YELLOW}{np.linalg.norm(sat_2.position - sat_1.position):.0f}{RESET} m\n")
+    f"{RESET}Distance: {YELLOW}{np.linalg.norm(sat_2.position_vector - sat_1.position_vector):.0f}{RESET} m\n")
 
 
 sat_3 = Satellite(name="Sat 3",
@@ -63,6 +73,7 @@ sat_3 = Satellite(name="Sat 3",
                   semi_major_axis=2.5E7,
                   eccentricity=0.2)
 sat_3.time = 2000
+sat_3.kepler_graph(ax=mars_ax)
 logger.info(sat_3)
 
 sat_4 = Satellite(name="Sat 4",
@@ -70,10 +81,11 @@ sat_4 = Satellite(name="Sat 4",
                   semi_major_axis=earth.radius + 700E3,
                   eccentricity=0.05)
 sat_4.time = 3000
+sat_4.kepler_graph(ax=mars_ax, color='#FFEFD3')
 logger.info(sat_4)
 
 logger.info(
-    f"{RESET}Distance: {YELLOW}{np.linalg.norm(sat_4.position - sat_3.position):.0f}{RESET} m\n")
+    f"{RESET}Distance: {YELLOW}{np.linalg.norm(sat_4.position_vector - sat_3.position_vector):.0f}{RESET} m\n")
 
 
 # Assignment 5
@@ -97,29 +109,31 @@ IH_1 = Satellite(name="InhollandSat 1",
                  altitude=525E3,
                  velocity=7728)
 
-# IH_1.kepler_graph(100000)
+# IH_1.kepleplot_combinedr_graph(100000)
 # IH_1.step_graph(100000)
 IH_1.plot_combined(1000)
 
-plt.show()
 
 IH_2 = Satellite(name="InhollandSat 2",
-                 orbit=earth.surface_orbit())
-IH_2.launch(525E3)
-IH_2.hohmann(385000E3)
-IH_2.incline(18)
+                 planet=earth,
+                 altitude=525E3)
+# IH_2 = IH_2.launch(525E3)
+IH_2 = IH_2.hohmann(385000E3)
+IH_2 = IH_2.incline(18)
 
 IH_3 = Satellite(name="InhollandSat 3",
                  planet=earth,
                  altitude=525E3)
 
-IH_3.incline(18)
-IH_3.hohmann(385000E3)
+IH_3 = IH_3.incline(18)
+IH_3 = IH_3.hohmann(385000E3)
 
 mars_sat = Satellite(name="Mars Sat 1",
-                     orbit=mars.surface_orbit())
-mars_sat.launch(200)
+                     planet=mars)
+mars_sat = mars_sat.launch(200)
 
 logger.info(mars.stationary())
 
 mars.sun_synchronous_graph()
+
+plt.show()
