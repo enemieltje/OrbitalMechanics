@@ -41,6 +41,8 @@ mars = Planet(mass=6.4171E23,
               J2=1960.45E-6,
               color="#FFC49B")
 
+# TODO: Assignment 2
+
 # Assignment 4
 fig = plt.figure()
 earth_ax = fig.add_subplot(121)
@@ -107,33 +109,41 @@ logger.info(
 IH_1 = Satellite(name="InhollandSat 1",
                  planet=earth,
                  altitude=525E3,
-                 velocity=7728)
+                 #  velocity=7728
+                 )
+IH_1.velocity = 7728
 
-# IH_1.kepleplot_combinedr_graph(100000)
+# IH_1.kepler_graph(100000)
 # IH_1.step_graph(100000)
 IH_1.plot_combined(1000)
+
+# plt.show()
 
 
 IH_2 = Satellite(name="InhollandSat 2",
                  planet=earth,
                  altitude=525E3)
 # IH_2 = IH_2.launch(525E3)
-IH_2 = IH_2.hohmann(385000E3)
-IH_2 = IH_2.incline(18)
+IH_2.hohmann(385000E3)
+IH_2.incline(np.radians(18))
 
 IH_3 = Satellite(name="InhollandSat 3",
                  planet=earth,
                  altitude=525E3)
 
-IH_3 = IH_3.incline(18)
-IH_3 = IH_3.hohmann(385000E3)
+IH_3.incline(np.radians(18))
+IH_3.hohmann(385000E3)
+logger.info(IH_2)
+logger.info(IH_3)
 
 mars_sat = Satellite(name="Mars Sat 1",
                      planet=mars)
-mars_sat = mars_sat.launch(200)
+mars_sat = mars_sat.launch(200E3)
 
-logger.info(mars.stationary())
+logger.info(mars.stationary)
+logger.info(
+    f"{RESET}Altitude of Areostationary orbit: {YELLOW}{(mars.stationary/1000):.0f}{RESET} km\n")
 
 mars.sun_synchronous_graph()
 
-plt.show()
+# plt.show()

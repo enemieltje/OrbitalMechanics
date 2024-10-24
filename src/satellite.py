@@ -56,84 +56,100 @@ class Satellite(Orbit):
 
     @property
     def r(self):
-        return np.linalg.norm(self.position_vector)
+        # Orbit equation:
+        return (self.a * (1 - self.e ** 2)) / \
+            (1 + (self.e * np.cos(self.theta)))
 
     @property
     def position_vector(self):
 
-        # Extract Keplerian elements
-        a = self.semi_major_axis
-        e = self.eccentricity
-        i = self.inclination
-        Omega = self.right_ascension
-        omega = self.argument_of_periapsis
-        theta = self.true_anomaly
-
-        # Step 1: Calculate distance from the focus using semi-major axis and eccentricity
-        r = (a * (1 - e ** 2)) / \
-            (1 + (e * np.cos(theta)))
-
-        # Step 2: Position in the orbital plane
-        x0 = r * np.cos(theta)
-        y0 = r * np.sin(theta)
-        z0 = 0  # Since it's in the orbital plane
-
-        # Step 3: Transformation to the inertial frame
-
-        # Rotation by argument of periapsis (around z-axis)
-        x1 = x0 * np.cos(omega) - y0 * np.sin(omega)
-        y1 = x0 * np.sin(omega) + y0 * np.cos(omega)
-        z1 = z0  # No change in z in this step
-
-        # Rotation by inclination (around x-axis)
-        x2 = x1
-        y2 = y1 * np.cos(i) - z1 * np.sin(i)
-        z2 = y1 * np.sin(i) + z1 * np.cos(i)
-
-        # Rotation by RAAN (around z-axis again)
-        x = x2 * np.cos(Omega) - y2 * np.sin(Omega)
-        y = x2 * np.sin(Omega) + y2 * np.cos(Omega)
-        z = z2  # No change in z in this step
-
-        return np.array([x, y, z])
+        return self.to_inertial_plane(
+            self.r * np.cos(self.theta),
+            self.r * np.sin(self.theta),
+            0
+        )
 
     @property
     def velocity(self):
-        if self._velocity:
-            return self._velocity
-        else:
-            two_on_r = 2 / self.r
-            one_on_a = 1 / self.a
+        # if self._velocity:
+        #     return self._velocity
+        # else:
+        # Vis-viva equation
+        two_on_r = 2 / self.r
+        one_on_a = 1 / self.a
 
-            factor = two_on_r - one_on_a
-            v_squared = self.planet.mu * factor
+        factor = two_on_r - one_on_a
+        v_squared = self.planet.mu * factor
 
-            return np.sqrt(v_squared)
+        return np.sqrt(v_squared)
 
     @velocity.setter
     def velocity(self, velocity):
-        if not velocity:
-            return
-        self._velocity = velocity
-        logger.warning(self.r)
 
-        # Vis-visa equation
-        self.semi_major_axis = 1 /\
+        # Check if at apside
+        if not (self.time == 0 or self.time == self.period/2):
+            logger.error("Can only set velocity at an apside!")
+            return
+
+        self._velocity = velocity
+        r = self.r
+        # logger.warning(r)
+
+        # Vis-viva equation
+        semi_major_axis = 1 /\
             (
-                (2 / self.r) -
+                (2 / r) -
                 ((velocity ** 2) / self.planet.mu)
             )
-        logger.warning(self.semi_major_axis)
+        self.semi_major_axis = semi_major_axis
+        # logger.warning(self.semi_major_axis)
+
+        # Periapsis formula
+        eccentricity = 1.0 - (r / semi_major_axis)
+
+        # Check if apoapsis and periapsis changed places
+        if eccentricity > 0:
+            # In periapsis after velocity change
+            self.eccentricity = eccentricity
+            self.time = 0
+        else:
+            # In apoapsis after velocity change
+            self.eccentricity = -eccentricity
+            self.time = self.period/2
 
         # eccentricity vector
-        self.eccentricity = \
-            ((velocity ** 2) / self.planet.mu) - \
-            (1 / (self.r))
-        logger.warning(self.eccentricity)
+        # r_factor = ((velocity ** 2) / self.planet.mu) - \
+        #     (1 / r)
+
+        # v_factor = np.dot(self.position_vector, self.velocity_vector) /\
+        #     -self.planet.mu
+
+        # eccentricity_vector = r_factor * self.position_vector - \
+        #     v_factor * self.velocity_vector
+
+        # self.eccentricity = np.linalg.norm(eccentricity_vector)
+
+        # logger.warning(self.eccentricity)
+        # logger.warning(np.linalg.norm(eccentricity_vector))
 
     @property
     def velocity_vector(self):
-        pass
+        # flight path angle (from: wiki Elliptic Orbit)
+        tan_flight_path_angle = (self.e * np.sin(self.true_anomaly)) / \
+                                (1 + (self.e * np.cos(self.true_anomaly)))
+        flight_path_angle = np.arctan(tan_flight_path_angle)
+        velocity_angle = self.true_anomaly + np.pi / 2 - flight_path_angle
+
+        return self.to_inertial_plane(
+            self.velocity * np.cos(velocity_angle),
+            self.velocity * np.sin(velocity_angle),
+            0
+        )
+
+    @property
+    def eccentricity_vector(self):
+
+        return self.eccentricity * self.to_inertial_plane(1, 0, 0)
 
     def __str__(self) -> str:
         return (f"{CYAN}{self.name}{RESET}\n"
@@ -145,6 +161,7 @@ class Satellite(Orbit):
                 f"True Anomaly: {RED}{self.true_anomaly:.4f}{RESET} radians\n"
                 f"Distance to Planet: {RED}{self.r:.0f}{RESET} m,\n"
                 f"velocity: {RED}{self.velocity:.0f}{RESET} m/s,\n"
+                f"Expended Delta v: {RED}{self.delta_v:.0f}{RESET} m/s\n"
                 f"Position: {self.position_vector},\n"
                 )
 
@@ -260,22 +277,35 @@ class Satellite(Orbit):
 
     def launch(self, altitude):
         logger.info(self)
-        new_satellite = Satellite(name=self.name,
-                                  planet=self.planet,
-                                  altitude=altitude,
-                                  )
-        delta_v = abs(new_satellite.velocity - self.velocity)
-        new_satellite.add_delta_v(delta_v)
+        # velocity at equator
+        v0 = self.velocity
+        # new_satellite = Satellite(name=self.name,
+        #                           planet=self.planet,
+        #                           altitude=altitude,
+        #                           )
+        self.semi_major_axis = self.planet.radius + altitude
+        self.eccentricity = 0
+
+        g_surface = self.planet.g
+        g_orbit = self.planet.mu / (self.semi_major_axis) ** 2
+        g_avg = (g_surface + g_orbit) / 2
+
+        gravity_loss = np.sqrt(2 * g_avg * altitude)
+
+        delta_v = abs(self.velocity + gravity_loss - v0)
+        self.add_delta_v(delta_v)
         logger.info(f"{CYAN}{self.name}{RESET}\n"
                     f"Launching to {RED}{(altitude/1000):.0f}{RESET} km\n"
                     f"Velocity before launch: {RED}{
-                        self.velocity:.0f}{RESET} m/s\n"
+                        v0:.0f}{RESET} m/s\n"
+                    f"Gravity loss: {RED}{
+                        gravity_loss:.0f}{RESET} m/s\n"
                     f"Velocity after launch: {RED}{
-                        new_satellite.velocity:.0f}{RESET} m/s\n"
+                        self.velocity:.0f}{RESET} m/s\n"
                     f"Expended Delta v: {RED}{delta_v:.0f}{RESET} m/s\n"
                     )
 
-        return new_satellite
+        # return new_satellite
 
     def hohmann(self, altitude):
         # set position to periapsis
@@ -287,28 +317,49 @@ class Satellite(Orbit):
         self.change_apsis(altitude)
 
     def change_apsis(self, altitude):
+
+        # Check if at apside
+        if not (self.time == 0 or self.time == self.period/2):
+            logger.error("Can only change apsis at an apside!")
+            return
+
         logger.info(self)
-        # vis viva
+
         # a = average(where we are, where we want to be)
+        a = (self.r + self.planet.radius + altitude) / 2
         v0 = self.velocity
+
+        # vis viva
         two_on_r = 2 / self.r
-        one_on_a = 1 /\
-            ((self.r +
-              self.planet.radius + altitude) / 2)
+        one_on_a = 1 / a
         self.velocity = np.sqrt(self.planet.mu * (two_on_r - one_on_a))
+
         delta_v = abs(self.velocity - v0)
         self.add_delta_v(delta_v)
 
         logger.info(f"{CYAN}{self.name}{RESET}\n"
                     f"changing apsis to {RED}{
                         (altitude/1000):.0f}{RESET} km\n"
-                    f"Velocity before launch: {RED}{
+                    f"Velocity before burn: {RED}{
                         v0:.0f}{RESET} m/s\n"
-                    f"Velocity after launch: {RED}{
+                    f"Velocity after burn: {RED}{
                         self.velocity:.0f}{RESET} m/s\n"
                     f"Expended Delta v: {RED}{delta_v:.0f}{RESET} m/s\n"
                     )
 
+    def incline(self, delta_i):
+        self.inclination += delta_i
+
+        delta_v = 2*self.velocity * np.sin(abs(delta_i)/2)
+        self.add_delta_v(delta_v)
+
+        logger.info(f"{CYAN}{self.name}{RESET}\n"
+                    f"changing inclination to {RED}{
+                        self.i:.0f}{RESET} radians\n"
+                    f"Velocity: {RED}{
+                        self.velocity:.0f}{RESET} m/s\n"
+                    f"Expended Delta v: {RED}{delta_v:.4f}{RESET} m/s\n"
+                    )
         pass
 
     def add_delta_v(self, delta_v):

@@ -23,6 +23,21 @@ class Planet:
     def mu(self):
         return self.gravitational_parameter
 
+    @property
+    def g(self):
+        return self.mu / self.radius ** 2
+
+    @property
+    def rotation_period(self):
+        return self.radius / self.equatorial_velocity
+
+    @property
+    def stationary(self):
+        p_on_2pi = self.rotation_period / (2 * np.pi)
+        root_factor = self.mu * p_on_2pi ** 2
+        stationary_semi_major_axis = root_factor ** (1/3)
+        return stationary_semi_major_axis - self.radius
+
     def __init__(self, **kwargs) -> None:
         self.mass = kwargs.get("mass", 0)
         self.color = kwargs.get("color", "gray")

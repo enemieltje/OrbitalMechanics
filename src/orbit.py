@@ -141,11 +141,11 @@ class Orbit:
             # start with circular orbit
             self.semi_major_axis = self.planet.radius + altitude
             self.eccentricity = 0
-            logger.warning(f"v: {self.velocity}")
+            # logger.warning(f"v: {self.velocity}")
 
             # change velocity to compensate if needed
-            self.velocity = velocity
-            logger.warning(f"semi_major_axis: {self.semi_major_axis}")
+            # self.velocity = velocity
+            # logger.warning(f"semi_major_axis: {self.semi_major_axis}")
 
         elif self.planet:
             # logger.warning("none")
@@ -156,3 +156,25 @@ class Orbit:
 
         else:
             raise ValueError("Invalid arguments for orbit")
+
+    def to_inertial_plane(self, x0, y0, z0):
+        i = self.inclination
+        Omega = self.right_ascension
+        omega = self.argument_of_periapsis
+
+        # Rotation by argument of periapsis (around z-axis)
+        x1 = x0 * np.cos(omega) - y0 * np.sin(omega)
+        y1 = x0 * np.sin(omega) + y0 * np.cos(omega)
+        z1 = z0  # No change in z in this step
+
+        # Rotation by inclination (around x-axis)
+        x2 = x1
+        y2 = y1 * np.cos(i) - z1 * np.sin(i)
+        z2 = y1 * np.sin(i) + z1 * np.cos(i)
+
+        # Rotation by RAAN (around z-axis again)
+        x = x2 * np.cos(Omega) - y2 * np.sin(Omega)
+        y = x2 * np.sin(Omega) + y2 * np.cos(Omega)
+        z = z2  # No change in z in this step
+
+        return np.array([x, y, z])
