@@ -1,5 +1,4 @@
 import logging
-
 from matplotlib import pyplot as plt
 import numpy as np
 
@@ -29,7 +28,7 @@ class Planet:
 
     @property
     def rotation_period(self):
-        return self.radius / self.equatorial_velocity
+        return 2 * np.pi * self.radius / self.equatorial_velocity
 
     @property
     def stationary(self):
@@ -46,7 +45,7 @@ class Planet:
         self.equatorial_velocity = kwargs.get("equatorial_velocity", 0)
         self.oblateness_coefficient = kwargs.get("J2", 0)
         self.gravitational_parameter = self.mass * 6.67E-11
-        logger.info(self.mu)
+        logger.info(self.rotation_period)
 
     def old_sun_synchronous_inclination(self, altitude: float) -> float:
 
@@ -101,7 +100,6 @@ class Planet:
         return inclination
 
     def sun_synchronous_graph(self):
-        # Generate altitude values (for example, from 200 km to 2000 km)
         # 500 points between 200 km and 1000 km
         altitudes = np.linspace(200E3, 1000E3, 500)
 
@@ -118,5 +116,3 @@ class Planet:
         plt.ylabel('Inclination (degrees)')
         plt.grid(True)
         plt.legend()
-        # plt.show()
-        pass

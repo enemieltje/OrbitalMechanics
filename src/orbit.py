@@ -1,7 +1,6 @@
 import logging
 import numpy as np
 import numpy.typing as npt
-
 from planet import Planet
 
 logger = logging.getLogger(__name__)
@@ -43,6 +42,10 @@ class Orbit:
     @eccentricity.setter
     def eccentricity(self, eccentricity):
         self._eccentricity = eccentricity
+
+    @property
+    def eccentricity_vector(self):
+        return self.to_inertial_plane(self.eccentricity, 0, 0)
 
     @property
     def altitude(self):
@@ -94,19 +97,16 @@ class Orbit:
     def __str__(self) -> str:
         return (f"Semi-Major Axis: {RED}{self.semi_major_axis:.0f}{RESET} m,\n"
                 f"Eccentricity: {RED}{self.eccentricity:.2f}{RESET},\n"
-                f"Inclination: {RED}{self.inclination:.4f}{RESET} radians,\n"
+                f"Inclination: {RED}{self.inclination:.2f}{RESET} radians,\n"
                 f"Right Ascension: {RED}{
-                    self.right_ascension:.4f}{RESET} radians,\n"
+                    self.right_ascension:.2f}{RESET} radians,\n"
                 f"Argument of Periapsis: {RED}{
-                    self.argument_of_periapsis:.4f}{RESET} radians,\n"
+                    self.argument_of_periapsis:.2f}{RESET} radians,\n"
                 f"Semi Latus Rectum: {RED}{
                     self.semi_latus_rectum:.0f}{RESET} m,\n"
-                f"Periapsis: {RED}{
-                    self.periapsis:.0f}{RESET} m,\n"
-                f"Apoapsis: {RED}{
-                    self.apoapsis:.0f}{RESET} m,\n"
-                f"Period: {RED}{
-                    self.period:.0f}{RESET} m,\n"
+                f"Periapsis: {RED}{self.periapsis:.0f}{RESET} m,\n"
+                f"Apoapsis: {RED}{self.apoapsis:.0f}{RESET} m,\n"
+                f"Period: {RED}{self.period:.0f}{RESET} s,\n"
                 )
 
     # create new orbit
@@ -118,37 +118,19 @@ class Orbit:
         self.inclination = kwargs.get("inclination", 0)
         self.right_ascension = kwargs.get("right_ascension", 0)
         self.argument_of_periapsis = kwargs.get("argument_of_perigee", 0)
-        velocity = kwargs.get("velocity", None)
 
         altitude = kwargs.get("altitude", None)
 
         # Calculate Eccentricity and Semi-Major axis if not given
         if self.planet and self.eccentricity and self.semi_major_axis:
-            # logger.warning("eccentricity, semi_major_axis")
             pass
-        # elif self.planet and altitude and self.velocity:
-        #     logger.warning("altitude, velocity")
-            # self.eccentricity = \
-            #     ((velocity ** 2) / self.planet.gravitational_parameter) - \
-            #     (1 / (self.planet.radius + altitude))
-            # # logger.warning(self.eccentricity)
-            # self.semi_major_axis = 1 / \
-            #     ((2 / (self.planet.radius + altitude)) -
-            #      ((velocity ** 2) / self.planet.gravitational_parameter))
-            # pass
 
         elif self.planet and altitude:
             # start with circular orbit
             self.semi_major_axis = self.planet.radius + altitude
             self.eccentricity = 0
-            # logger.warning(f"v: {self.velocity}")
-
-            # change velocity to compensate if needed
-            # self.velocity = velocity
-            # logger.warning(f"semi_major_axis: {self.semi_major_axis}")
 
         elif self.planet:
-            # logger.warning("none")
             # Landed on equator "orbit"
             self.semi_major_axis = self.planet.radius / 2
             self.eccentricity = 0.9999

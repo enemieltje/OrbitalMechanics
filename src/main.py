@@ -26,6 +26,7 @@ logging.basicConfig(handlers=[handler],
                     encoding='utf-8', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# Create plannets
 earth = Planet(mass=5.972E24,
                radius=6371E3,
                orbit_period=365.256363004 * 24 * 60 * 60,
@@ -41,13 +42,13 @@ mars = Planet(mass=6.4171E23,
               J2=1960.45E-6,
               color="#FFC49B")
 
-# TODO: Assignment 2
-
 # Assignment 4
 fig = plt.figure()
 earth_ax = fig.add_subplot(121)
 earth_ax.set_aspect('equal')
+earth_ax.set_title("Orbit Propagation around Earth")
 mars_ax = fig.add_subplot(122)
+mars_ax.set_title("Orbit Propagation around Mars")
 mars_ax.set_aspect('equal')
 
 sat_1 = Satellite(name="Sat 1",
@@ -99,33 +100,28 @@ moon = Satellite(name="Moon",
                  eccentricity=0.0549,
                  inclination=np.radians(5.145))
 logger.info(moon)
-# logger.info(moon.apsides_precession())
+precession = moon.apsides_precession()
+
 logger.info(
-    f"{RESET}Precession of Apsides: {YELLOW}{moon.apsides_precession()}{RESET} rad/rev\n")
+    f"{RESET}Precession of Apsides: {YELLOW}{precession}{RESET} rad/rev\n")
 
 
 # Assignment 6
-
 IH_1 = Satellite(name="InhollandSat 1",
                  planet=earth,
-                 altitude=525E3,
-                 #  velocity=7728
+                 altitude=525E3
                  )
-IH_1.velocity = 7728
-
-# IH_1.kepler_graph(100000)
-# IH_1.step_graph(100000)
+IH_1.change_velocity(7728)
 IH_1.plot_combined(1000)
-
-# plt.show()
-
 
 IH_2 = Satellite(name="InhollandSat 2",
                  planet=earth,
                  altitude=525E3)
-# IH_2 = IH_2.launch(525E3)
+
 IH_2.hohmann(385000E3)
 IH_2.incline(np.radians(18))
+logger.info(
+    f"{RESET}Total Expended Delta v: {YELLOW}{(IH_2.delta_v):.0f}{RESET} km\n")
 
 IH_3 = Satellite(name="InhollandSat 3",
                  planet=earth,
@@ -133,17 +129,24 @@ IH_3 = Satellite(name="InhollandSat 3",
 
 IH_3.incline(np.radians(18))
 IH_3.hohmann(385000E3)
+logger.info(
+    f"{RESET}Total Expended Delta v: {YELLOW}{(IH_3.delta_v):.0f}{RESET} km\n")
+
 logger.info(IH_2)
 logger.info(IH_3)
 
-mars_sat = Satellite(name="Mars Sat 1",
-                     planet=mars)
-mars_sat = mars_sat.launch(200E3)
 
-logger.info(mars.stationary)
+earth_sat = Satellite(name="Earth Sat", planet=earth)
+earth_sat.launch(250E3)
+
+mars_sat = Satellite(name="Mars Sat", planet=mars)
+mars_sat.launch(200E3)
+
+logger.info(
+    f"{RESET}Altitude of Geostationary orbit: {YELLOW}{(earth.stationary/1000):.0f}{RESET} km\n")
 logger.info(
     f"{RESET}Altitude of Areostationary orbit: {YELLOW}{(mars.stationary/1000):.0f}{RESET} km\n")
 
 mars.sun_synchronous_graph()
 
-# plt.show()
+plt.show()
